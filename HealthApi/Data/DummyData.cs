@@ -1,4 +1,6 @@
 ﻿using HealthApi.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +10,33 @@ namespace HealthApi.Data
 {
     public class DummyData
     {
+
+        public static void Initialize(IApplicationBuilder app)
+        {
+            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
+            {
+                var context = serviceScope.ServiceProvider.GetService<HealthContext>();
+                context.Database.EnsureCreated();
+                //context.Database.Migrate()
+
+                // Look for any ailments
+                if (context.Ailments != null && context.Ailments.Any())
+                    return; //Db has already been seeded
+
+                var ailments = GetAilments().ToArray();
+                context.Ailments.AddRange(ailments);
+                context.SaveChanges();
+
+                var medications = GetMedications().ToArray();
+                context.Medications.AddRange(medications);
+                context.SaveChanges();
+
+                var patients = GetPatients(context).ToArray();
+                context.Patients.AddRange(patients);
+                context.SaveChanges();
+            }
+        }
+
         public static List<Ailment> GetAilments()
         {
             List<Ailment> ailments = new List<Ailment>()
@@ -32,22 +61,28 @@ namespace HealthApi.Data
             };
             return medications;
         }
-        public static List<Patient> GetMedications(HealthContext db)
+        public static List<Patient> GetPatients(HealthContext db)
         {
             List<Patient> patients = new List<Patient>()
             {
                new Patient
                {
-                   Name="Ann Smith",
+                   Name="Jim Jhon",
                    Ailments= new List<Ailment>(db.Ailments.Take(2)),
                    Medications = new List<Medication>(db.Medications.Take(2))
                },
                new Patient
                {
                    Name="Ann Smith",
-                   Ailments= new List<Ailment>(db.Ailments.Take(2)),
-                   Medications = new List<Medication>(db.Medications.Take(2))
-               }, 
+                   Ailments= new List<Ailment>(db.Ailments.Take(1)),
+                   Medications = new List<Medication>(db.Medications.OrderBy(m=>m.Name).Skip(1).Take(2))
+               },
+                new Patient
+               {
+                   Name="Tom Myer",
+                   Ailments= new List<Ailment>(db.Ailments.OrderBy(m=>m.Name).Skip(2).Take(2)),
+                   Medications = new List<Medication>(db.Medications.OrderBy(m=>m.Name).Skip(2).Take(2))
+               },
             };
             return patients;
         }

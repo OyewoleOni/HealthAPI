@@ -41,6 +41,7 @@ namespace HealthApi
             }
 
             app.UseMvc();
+            DummyData.Initialize(app);
         }
     }
 }
